@@ -8,7 +8,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using System.IO;
+using Jit1;
 
 namespace CRM.WebApi.Controllers
 {
@@ -43,7 +43,7 @@ namespace CRM.WebApi.Controllers
         [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
         public IActionResult GetAccounts()
         {
-            Result result = _accountService.GetAccounts();
+            Result result = jiten.GetAccounts();
             if (result.HasError)
             {
                 return StatusCode(result.StatusCode, result.WebApiError);
@@ -64,19 +64,7 @@ namespace CRM.WebApi.Controllers
             return Ok(result.ResultObject);
         }
 
-        [HttpPost("GetAllAccounts")]
-        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
-        public IActionResult GetAllAccounts([FromBody] AccountSearch accountSearch)
-        {
-            Result result = _accountService.GetAllAccounts(accountSearch);
-            if (result.HasError)
-            {
-                return StatusCode(result.StatusCode, result.WebApiError);
-            }
-
-            return Ok(result.ResultObject);
-        }
-
+        
         [HttpGet("GetAccountCustomFields/{entityTypeId}")]
         [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
         public IActionResult GetAccountCustomFields(int entityTypeId)
@@ -143,7 +131,7 @@ namespace CRM.WebApi.Controllers
             return Ok(result.ResultObject);
         }
 
-        [HttpPut("TerminateAccount")]
+        [HttpPost("GetAccountProspects")]
         [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
         public IActionResult TerminateAccount([FromBody] TerminateAccountDto terminateAccountDto)
         {
@@ -918,6 +906,7 @@ namespace CRM.WebApi.Controllers
             {
                 return StatusCode(result.StatusCode, result.WebApiError);
             }
+			Result result = _accountService.AddBulkMemberShipCardPrintRequest(accountId);
             return Ok(result.ResultObject);
         }
 
@@ -1008,6 +997,7 @@ namespace CRM.WebApi.Controllers
         }
 
         [HttpPost("StageBulkPushToDrexi")]
+		[HttpPost("StageBulkPushToDrexi")]
         [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
         public IActionResult StageBulkPushToDrexi([FromBody] int accountId)
         {
@@ -1084,18 +1074,7 @@ namespace CRM.WebApi.Controllers
             return Ok(result.ResultObject);
         }
 
-        [HttpGet("DeleteEmployeeClass/{accountID}/{className}")]
-        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
-        public IActionResult DeleteEmployeeClass(int accountID, string className)
-        {
-            Result result = _accountService.DeleteEmployeeClass(accountID, className);
-            if (result.HasError)
-            {
-                return StatusCode(result.StatusCode, result.WebApiError);
-            }
-
-            return Ok(result.ResultObject);
-        }
+        
 
         [HttpGet("AccountStartEnrollment/{accountId}")]
         [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
@@ -1109,7 +1088,70 @@ namespace CRM.WebApi.Controllers
 
             return Ok(result.ResultObject);
         }
-
+[TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult SaveReseller([FromBody] SaveResellerDto resellerModel)
+        {
+            Result result = _accountService.SaveReseller(resellerModel);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }[TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult SaveReseller([FromBody] SaveResellerDto resellerModel)
+        {
+            Result result = _accountService.SaveReseller(resellerModel);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }[TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult SaveReseller([FromBody] SaveResellerDto resellerModel)
+        {
+            Result result = _accountService.SaveReseller(resellerModel);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }[TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult SaveReseller([FromBody] SaveResellerDto resellerModel)
+        {
+            Result result = _accountService.SaveReseller(resellerModel);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }[TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult SaveReseller([FromBody] SaveResellerDto resellerModel)
+        {
+            Result result = _accountService.SaveReseller(resellerModel);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }[TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult SaveReseller([FromBody] SaveResellerDto resellerModel)
+        {
+            Result result = _accountService.SaveReseller(resellerModel);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }[TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult SaveReseller([FromBody] SaveResellerDto resellerModel)
+        {
+            Result result = _accountService.SaveReseller(resellerModel);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
         [HttpGet("DownloadSPDDocument/{accountId}/{productId}")]
         [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
         public IActionResult DownloadSPDDocument(int accountId, int productId)
