@@ -1,0 +1,1128 @@
+using CRM.Common;
+using CRM.Core.Entities;
+using CRM.Services;
+using CRM.Services.Dto;
+using CRM.WebApi.Filters;
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
+using System.IO;
+
+namespace CRM.WebApi.Controllers
+{
+    [Route("Account")]
+    public class AccountController : Controller
+    {
+
+        private readonly ILoggerService _loggerService;
+        private readonly IAccountService _accountService;
+        private readonly IAccountExtService _accountExtService;
+        private readonly IAddressService _addressService;
+        private readonly IUsersService _usersService;
+        private readonly IAccountContributionsService _accountContributionsService;
+
+        public AccountController(
+            ILoggerService loggerService,
+            IAccountService accountService,
+            IAccountExtService accountExtService,
+            IAddressService addressService,
+            IUsersService usersService,
+            IAccountContributionsService accountContributionsService)
+        {
+            _loggerService = loggerService;
+            _accountService = accountService;
+            _accountExtService = accountExtService;
+            _addressService = addressService;
+            _usersService = usersService;
+            _accountContributionsService = accountContributionsService;
+        }
+
+        [HttpGet("GetAccounts")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult GetAccounts()
+        {
+            Result result = _accountService.GetAccounts();
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+
+            return Ok(result.ResultObject);
+        }
+
+        [HttpGet("GetAccountTypes")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult GetAccountTypes()
+        {
+            Result result = _accountService.GetAccountTypes();
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpPost("GetAllAccounts")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult GetAllAccounts([FromBody] AccountSearch accountSearch)
+        {
+            Result result = _accountService.GetAllAccounts(accountSearch);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+
+            return Ok(result.ResultObject);
+        }
+
+        [HttpGet("GetAccountCustomFields/{entityTypeId}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult GetAccountCustomFields(int entityTypeId)
+        {
+            Result result = _accountService.GetAccountCustomFields(entityTypeId);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpGet("GetAccountDetailById/{id}")]
+        [HttpGet("GetAccountDetailById/{id}/{workFlow}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult GetAccountDetailById(int id, Enums.Workflow? workflow = null)
+        {
+            Result result = _accountService.GetAccountDetailById(id, workflow);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpPost("AddAccount")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult AddAccount([FromBody] AccountsDto accountsModel)
+        {
+            Result result = _accountService.SaveAccount(accountsModel);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            // add account custom fields
+            if (result.ResultObject != null && accountsModel.CustomFieldJSONData != null)
+            {
+                string customFields = JsonConvert.SerializeObject(accountsModel.CustomFieldJSONData);
+                Result customFieldResult = _accountService.InsertUpdateAccountCustomFields((result.ResultObject as AccountsDto).Id, customFields);
+                if (customFieldResult.HasError)
+                {
+                    return StatusCode(customFieldResult.StatusCode, customFieldResult.WebApiError);
+                }
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpPut("UpdateAccount")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult UpdateAccount([FromBody] AccountsDto accountModel)
+        {
+            Result result = _accountService.SaveAccount(accountModel);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            // update account custom fields
+            string customFields = JsonConvert.SerializeObject(accountModel.CustomFieldJSONData);
+            result = _accountService.InsertUpdateAccountCustomFields(accountModel.Id, customFields);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpPut("TerminateAccount")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult TerminateAccount([FromBody] TerminateAccountDto terminateAccountDto)
+        {
+            Result result = _accountService.TerminateAccount(terminateAccountDto);
+
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpGet("GetEntityStagesWithTask")]
+        [HttpGet("GetEntityStagesWithTask/{WorkFlow}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult GetEntityStagesWithTask(Enums.Workflow? workflow)
+        {
+            Result result = _accountService.GetEntityStagesWithTask(workflow);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpPost("GetAccountProspects")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult GetAccountProspects([FromBody] AccountSearch accountSearch)
+        {
+            Result result = _accountService.GetAccountProspects(accountSearch);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpPut("UpdateEntityStage")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult UpdateEntityStage([FromBody] AccountsDto accountsModel)
+        {
+            Result result = _accountService.UpdateEntityStage(accountsModel);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpPut("InsertUpdateEntityStageTaskTransitions")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult InsertUpdateEntityStageTaskTransitions([FromBody] EntityStageTaskTransitionsDto entityStageTaskTransitionsModel)
+        {
+            Result result = _accountService.InsertUpdateEntityStageTaskTransitions(entityStageTaskTransitionsModel);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+
+            return Ok(result.ResultObject);
+        }
+
+        [HttpGet("GetAccountContributionClasses/{id}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult GetAccountContributionClasses(int id)
+        {
+            Result result = _accountContributionsService.GetAccountContributionClasses(id);
+            if (result.HasError)
+                return StatusCode(result.StatusCode, result.WebApiError);
+            return Ok(result.ResultObject);
+        }
+
+        [HttpGet("GetAccountContributionsById/{id}/{className}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult GetAccountContributionsById(int id, string className)
+        {
+            Result result = _accountContributionsService.GetAccountContributionsById(id, className);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpGet("GetAccountPlans/{id}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult GetAccountPlans(int id)
+        {
+            Result result = _accountContributionsService.GetAccountPlans(id);
+            if (result.HasError)
+                return StatusCode(result.StatusCode, result.WebApiError);
+            return Ok(result.ResultObject);
+        }
+
+        [HttpPost("GetAccountContributionsByPlanId/{id}/{className}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult GetAccountContributionsByPlanId(int id, string className, [FromBody] int[] planIds)
+        {
+            Result result = _accountContributionsService.GetAccountContributionsByPlanId(id, className, planIds);
+            if (result.HasError)
+                return StatusCode(result.StatusCode, result.WebApiError);
+            return Ok(result.ResultObject);
+        }
+
+        [HttpPost("SaveAccountContributions/{id}/{className}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult SaveAccountContributions(int id, string className, [FromBody] List<AccountContributionDto> accountContributionDto)
+        {
+            Result result = _accountContributionsService.SaveAccountContributions(id, className, accountContributionDto);
+            if (result.HasError)
+                return StatusCode(result.StatusCode, result.WebApiError);
+            return Ok(result.ResultObject);
+        }
+
+        [HttpDelete("DeleteAccountContributionByPlanId/{id}/{className}/{planId}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult DeleteAccountContributionByPlanId(int id, string className, int planId)
+        {
+            Result result = _accountContributionsService.DeleteAccountContributionByPlanIdAndClassName(id, className, planId);
+            if (result.HasError) return StatusCode(result.StatusCode, result.WebApiError);
+            return Ok(result.ResultObject);
+        }
+
+        [HttpPost("AddAccountContribution")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult AddAccountContribution([FromBody] AccountContributionsDetailDto accountContributionModel)
+        {
+            Result result = _accountContributionsService.AddAccountContributions(accountContributionModel);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpPost("SendEmployeeEnrollmentText/{id}/{mobile?}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult SendEmployeeEnrollmentText(int id, string mobile)
+        {
+            Result result = _accountService.SendEmployeeEnrollmentText(id, mobile);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpPost("SendEmployeeActivationText/{id}/{mobile?}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult SendEmployeeActivationText(int id, string mobile)
+        {
+            Result result = _accountService.SendEmployeeActivationText(id, mobile);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpPut("UpdateAccountManager")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult UpdateAccountManager([FromBody] AccountsDto accountsDto)
+        {
+            Result result = _accountService.UpdateAccountManager(accountsDto);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpPost("CreateProspectEmployer")]
+        [TypeFilter(typeof(CompanyAuthorizeFilterAttribute))]
+        public IActionResult CreateProspectEmployer([FromBody] WebhookEmployerEnrollmentDto webhookEmployerEnrollmentDto)
+        {
+            Result result = _accountService.CreateProspectEmployer(webhookEmployerEnrollmentDto);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpGet("GetAccountProuctsByAccountId/{Id}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult GetAccountProuctsByAccountId(int Id)
+        {
+            Result result = _accountService.GetAccountProuctsByAccountId(Id);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpGet("GetAccountProuctsExistsByAccountId/{Id}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult GetAccountProuctsExistsByAccountId(int Id)
+        {
+            Result result = _accountService.GetAccountProuctsExistsByAccountId(Id);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpGet("GetAccountProductById/{Id}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult GetAccountProductById(int Id)
+        {
+            Result result = _accountService.GetAccountProductById(Id);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpPost("SaveAccountProduct")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult SaveAccountProduct([FromBody] AccountProductsDetailDto accountProductsDetailDto)
+        {
+            Result result = _accountService.SaveAccountProducts(accountProductsDetailDto);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpDelete("DeleteAccountProduct/{id}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult DeleteAccountProduct(int id)
+        {
+            Result result = _accountService.DeleteAccountProduct(id);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpGet("GetAccountDetailByShortCode")]
+        [TypeFilter(typeof(CompanyAuthorizeFilterAttribute))]
+        public IActionResult GetAccountDetails(string shortCode)
+        {
+            Result result = _accountService.GetAccountDetailsByShortCode(shortCode);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpGet("GetAccountContributions")]
+        [TypeFilter(typeof(CompanyAuthorizeFilterAttribute))]
+        public IActionResult GetAccountPrice(string AccountId, string ClassName)
+        {
+            Result result = _accountContributionsService.GetAccountContributionsById(Convert.ToInt32(AccountId), ClassName);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+
+            return Ok(result.ResultObject);
+        }
+
+        [HttpPost("SaveProfilePhoto")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult SaveProfilePhoto([FromBody] JObject values)
+        {
+            int id = 0;
+            string photoBase64 = "";
+            if (values?.ContainsKey("id") == true)
+            {
+                id = Convert.ToInt32(values["id"]);
+            }
+            if (values?.ContainsKey("photoBase64") == true)
+            {
+                photoBase64 = Convert.ToString(values["photoBase64"]);
+            }
+            Result result = _accountService.SaveProfilePhoto(id, photoBase64);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpGet("GetAccountByAccountType/{id}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult GetAccountByAccountType(int id)
+        {
+            Result result = _accountService.GetAccountByAccountType(id);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpGet("FillBrokerageFirmAccount")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult FillBrokerageFirmAccount()
+        {
+            Result result = _accountService.FillBrokerageFirmAccount();
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpGet("GetAccountContactDetailByAccountId/{id}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult GetAccountContactDetailByAccountId(int id)
+        {
+            Result result = _accountService.GetAccountContactDetailByAccountId(id);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpPost("DownloadPDFForAccountDetail")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult DownloadPDFForAccountDetail([FromBody] AccountsDto accountsDto)
+        {
+            Result result = _accountService.DownloadPDFForAccountDetail(accountsDto);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+
+            var memory = new MemoryStream();
+            using (var stream = new FileStream(result.ResultObject.ToString(), FileMode.Open))
+            {
+                stream.CopyTo(memory);
+            }
+            memory.Position = 0;
+            string fileName = Path.GetFileName(result.ResultObject.ToString());
+            if (System.IO.File.Exists(result.ResultObject.ToString()))
+            {
+                System.IO.File.Delete(result.ResultObject.ToString());
+            }
+            //remove temp pdf files and directory
+
+            return File(memory, "application/pdf", fileName);
+        }
+
+        /// <summary>
+        /// This is used to Download PDF for ACH AUthorization
+        /// </summary>
+        /// <param name="accountsDto"> AccountDTO model</param>
+        /// <returns></returns>
+        [HttpPost("DownloadACHAuthorizationPDF")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult DownloadACHAuthorizationPDF([FromBody] AccountsDto accountsDto)
+        {
+            Result result = _accountService.DownloadACHAuthorizationPDF(accountsDto);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+
+            var memory = new MemoryStream();
+            using (var stream = new FileStream(result.ResultObject.ToString(), FileMode.Open))
+            {
+                stream.CopyTo(memory);
+            }
+            memory.Position = 0;
+            string fileName = Path.GetFileName(result.ResultObject.ToString());
+            if (System.IO.File.Exists(result.ResultObject.ToString()))
+            {
+                System.IO.File.Delete(result.ResultObject.ToString());
+            }
+            return File(memory, "application/pdf", fileName);
+        }
+
+        /// <summary> 
+        /// This is used to Download PDF for ACH AUthorization
+        /// </summary>
+        /// <param name="accountsDto"> AccountDTO model</param>
+        /// <returns></returns>
+        [HttpPost("DownloadInvoicePDF")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult DownloadInvoicePDF([FromBody] AccountsDto accountsDto)
+        {
+            Result result = _accountService.DownloadInvoicePDF(accountsDto);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+
+            var memory = new MemoryStream();
+            if (result.ResultObject != null)
+            {
+                using (var stream = new FileStream(result.ResultObject.ToString(), FileMode.Open))
+                {
+                    stream.CopyTo(memory);
+                }
+                memory.Position = 0;
+
+                return File(memory, "application/pdf", result.ResultObject.ToString());
+            }
+            else
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+        }
+
+
+        /// <summary>
+        /// This is used to download PDF for Credit Card AUthorization
+        /// </summary>
+        /// <param name="accountsDto">AccountsDto Model</param>
+        /// <returns></returns>
+        [HttpPost("DownloadCreditCardAuthorizationPDF")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult DownloadCreditCardAuthorizationPDF([FromBody] AccountsDto accountsDto)
+        {
+            Result result = _accountService.DownloadCreditCardAuthorizationPDF(accountsDto);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+
+            var memory = new MemoryStream();
+            using (var stream = new FileStream(result.ResultObject.ToString(), FileMode.Open))
+            {
+                stream.CopyTo(memory);
+            }
+            memory.Position = 0;
+            string fileName = Path.GetFileName(result.ResultObject.ToString());
+            if (System.IO.File.Exists(result.ResultObject.ToString()))
+            {
+                System.IO.File.Delete(result.ResultObject.ToString());
+            }
+            return File(memory, "application/pdf", fileName);
+        }
+
+        /// <summary>
+        /// This is used to download the Roster Details in CSV format.
+        /// </summary>
+        /// <param name="rostersDetailDto">RostersDetailDto Model</param>
+        /// <returns></returns>
+        [HttpPost("ExportRosterDetailsToCSV")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult ExportRosterDetailsToCSV([FromBody] AccountsDto accountsDto)
+        {
+            var result = _accountService.DownloadRosterToCSV(accountsDto.Id);
+            string companyName = _accountService.GetRosterFileName(accountsDto.Id);
+            return File(new MemoryStream(result.ResultObject as byte[]), "text/csv", companyName + ".csv");
+        }
+
+        /// <summary>
+        /// This is used to download the Roster Details in excel format.
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("ExportRosterDetailsToExcel")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult ExportRosterDetailsToExcel(int accountId, bool? activeRoster)
+        {
+            var result = _accountService.DownloadRosterToExcel(accountId, activeRoster);
+            return File(new MemoryStream(result.ResultObject as byte[]), "application/vnd.ms-excel");
+        }
+
+        #region Account Agent
+        [HttpGet("GetAccountAgentDetailByContactId/{id}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult GetAccountAgentDetailByContactId(int id)
+        {
+            Result result = _accountService.GetAccountAgentDetailByContactId(id);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpGet("GetAccountAgentDetailByAccountId/{id}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult GetAccountAgentDetailByAccountId(int id)
+        {
+            Result result = _accountService.GetAccountAgentDetailByAccountId(id);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpDelete("DeleteAccountAgent/{contactId}/{accountId}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult DeleteAccountAgent(int contactId, int accountId)
+        {
+            Result result = _accountService.DeleteAccountAgent(contactId, accountId);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+        #endregion
+
+        //Using GetAccountExtGroupIdById to get only one field instead of getting whole recored
+        //[HttpGet("GetAccountExtDetailById/{accountId}")]
+        //[TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        //public IActionResult GetAccountExtDetailById(int accountId)
+        //{
+        //    Result result = _accountService.GetAccountExtDetailById(accountId);
+        //    if (result.HasError)
+        //    {
+        //        return StatusCode(result.StatusCode, result.WebApiError);
+        //    }
+        //    return Ok(result.ResultObject);
+        //}
+
+        [HttpGet("GetAccountExtGroupIdById/{accountId}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult GetAccountExtGroupIdById(int accountId)
+        {
+            Result result = _accountService.GetAccountExtGroupIdById(accountId);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        /// <summary>
+        /// Save Quote Invoice details in DB of Nav2
+        /// </summary>
+        /// <param name="companyHash"> company Hash code</param>
+        /// <param name="quoteInvoiceDto"> Quote Invoice details</param>
+        /// <returns></returns>
+        [HttpPost("SaveEmployeeQuoteDetails")]
+        public IActionResult SaveEmployeeQuoteDetails([FromBody] JObject quoteInvoiceContent, string companyHash)
+        {
+            Result result = new Result();
+            Result tenantResult = new Result();
+            Result loginUserResult = new Result();
+
+            try
+            {
+                _loggerService.LogDebug("Request received from IPAddress: " + Request.HttpContext.Connection.RemoteIpAddress.ToString());
+                string quoteInvoiceData = Newtonsoft.Json.JsonConvert.SerializeObject(quoteInvoiceContent);
+                _loggerService.LogDebug("Received Quoted Employers Invoice data : " + quoteInvoiceData);
+
+                #region Default User and Tenant details
+                tenantResult = _usersService.GetTenantByRecordKey(companyHash);
+                if (tenantResult.HasError)
+                {
+                    return Ok("BadRequest");
+                }
+
+                TenantsDto tenantDto = tenantResult.ResultObject as TenantsDto;
+
+                loginUserResult = _usersService.GetDefaultUserByTenantID(tenantDto.Id);
+                if (loginUserResult.HasError)
+                {
+                    _loggerService.LogError("Something went wrong while getting default user detail");
+                    return StatusCode(loginUserResult.StatusCode, loginUserResult.WebApiError);
+                }
+                UsersDto defaultUser = loginUserResult.ResultObject as UsersDto;
+                if (defaultUser == null)
+                {
+                    _loggerService.LogError("Not found default user to create prospect employer (account)");
+                    return StatusCode(result.StatusCode, result.WebApiError);
+                }
+                #endregion
+                if (tenantDto != null)
+                {
+                    QuoteInvoiceDto quoteInvoiceDto = Newtonsoft.Json.JsonConvert.DeserializeObject<QuoteInvoiceDto>(quoteInvoiceData);
+                    if (quoteInvoiceDto != null)
+                    {
+                        result = _accountService.SaveQuoteInvoiceDetails(quoteInvoiceDto, tenantDto.Id, defaultUser.Id);
+                    }
+                    else
+                    {
+                        return BadRequest("Data not found.");
+                    }
+                }
+                else
+                {
+                    _loggerService.LogError("company detail not found by companyHash: " + companyHash);
+                    return Unauthorized();
+                }
+                _loggerService.LogDebug("Request received from IPAddress: " + Request.HttpContext.Connection.RemoteIpAddress.ToString());
+
+            }
+            catch (Exception ex)
+            {
+                _loggerService.LogError("An error occurred while capuring data from web request, error:" + ex.Message);
+                _loggerService.ProcessException("An error occurred while capuring data from web request, error:" + ex.Message, ex);
+                return Ok("BadRequest");
+            }
+
+            return Ok(result.ResultObject);
+        }
+
+        /// <summary>
+        /// Assign GroupID to Account
+        /// </summary>
+        /// <param name="accountId">accountId</param>
+        /// <returns></returns>
+        [HttpGet("AssignGroupID/{accountId}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult AssignGroupID(int accountId)
+        {
+            Result result = _accountService.AssignGroupID(accountId);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        /// <summary>
+        /// This is method used for validate help code
+        /// </summary>
+        /// <param name="tenantID"></param>
+        /// <param name="shortCode"></param>
+        /// <returns></returns>
+        [HttpGet("ValidateAccountEligibilityByShortCode")]
+        [TypeFilter(typeof(APIAuthorizeFilterAttribute))]
+        public IActionResult ValidateAccountEligibilityByShortCode(int tenantID, string shortCode, int accountTypeId)
+        {
+            Result result = _accountService.ValidateAccountProductEligibilityByShortCode(tenantID, shortCode, accountTypeId);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+
+        /// <summary>
+        /// This is method used for validate help code
+        /// </summary>
+        /// <param name="tenantID"></param>
+        /// <param name="shortCode"></param>
+        /// <returns></returns>
+        [HttpGet("GetAccountsBySearchText")]
+        [TypeFilter(typeof(APIAuthorizeFilterAttribute))]
+        public IActionResult GetAccountsBySearchText(int tenantId, string searchText)
+        {
+            List<int?> accountTypeIds = new List<int?>();
+            accountTypeIds.Add((int)Enums.AccountTypes.Group);
+            accountTypeIds.Add((int)Enums.AccountTypes.Employer);
+            Result result = _accountService.GetAccountsBySearchText(tenantId, searchText, accountTypeIds);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        /// <summary>
+        /// This is method used for stagging bulk employee enrollment text messages using helper api
+        /// </summary>
+        /// <param name="accountId">Acounnt/Client Id</param>
+        /// <returns></returns>
+        [HttpPost("StageBulkEnrollmentTexts")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult StageBulkEnrollmentTexts([FromBody] int accountId)
+        {
+            Result result = _accountService.StageBulkEnrollementTexts(accountId);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        /// <summary>
+        /// This is method used for stagging bulk employee Activation text messages using helper api
+        /// </summary>
+        /// <param name="accountId">Acounnt/Client Id</param>
+        /// <returns></returns>
+        [HttpPost("StageBulkActivationTexts")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult StageBulkActivationTexts([FromBody] int accountId)
+        {
+            Result result = _accountService.StageBulkActivationTexts(accountId);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        /// <summary>
+        /// This is method used for stagging bulk employee enrollment text messages using helper api
+        /// </summary>
+        /// <param name="accountId">Acounnt/Client Id</param>
+        /// <returns></returns>
+        [HttpPost("StageMemberShipCards")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult StageMemberShipCards([FromBody] int accountId)
+        {
+            Result result = _accountService.StageMemberShipCards(accountId);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+
+        /// <summary>
+        /// This is method used for stagging bulk spruce invite text messages using helper api
+        /// </summary>
+        /// <param name="accountId">Acounnt/Client Id</param>
+        /// <returns></returns>
+        [HttpPost("StageBulkSpruceAppInviteText")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult StageBulkSpruceAppInviteText([FromBody] int accountId)
+        {
+            Result result = _accountService.StageBulkSpruceAppInviteText(accountId);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpGet("GetEnrollCountByAccount/{id}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult GetEnrollCountByAccount(int id)
+        {
+            Result result = _accountService.GetEnrollCountByAccount(id);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpGet("IsRecordKeyExist/{recordKey}/{accountId}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult IsRecordKeyExist(string recordKey, int accountId)
+        {
+            Result result = _accountService.IsRecordKeyExist(recordKey, accountId);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpPost("UpdateRecordKey/{recordKey}/{accountId}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult UpdateRecordKey(string recordKey, int accountId)
+        {
+            Result result = _accountService.UpdateRecordKey(recordKey, accountId);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpPost("AddBulkMemberShipCardPrintRequest")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult AddBulkMemberShipCardPrintRequest([FromBody] int accountId)
+        {
+            Result result = _accountService.AddBulkMemberShipCardPrintRequest(accountId);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpGet("GetRosterChartData/{id}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult GetRosterChartData(int id)
+        {
+            Result result = _accountService.GetRosterChartData(id);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        /// <summary>
+        /// This method is used to return general agent list..
+        /// </summary>
+        /// <param name="paginationRequest">The Pagination Request object</param>
+        /// <returns></returns>
+        [HttpPost("GetGeneralAgentList")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult GetGeneralAgentList([FromBody] PaginationRequestModel<GeneralAgentRequestSearch> paginationRequest)
+        {
+            if (ModelState.IsValid)
+            {
+                Result result = _accountService.GetGeneralAgentList(paginationRequest);
+                if (result.HasError)
+                {
+                    return StatusCode(result.StatusCode, result.WebApiError);
+                }
+                return Ok(result.ResultObject);
+            }
+            return BadRequest();
+        }
+
+        /// <summary>
+        /// This method is used to return general accountId..
+        /// </summary>
+        /// <param name="shortCode">Account ShortCode</param>
+        /// <returns></returns>
+        [HttpGet("GetAccountIdByShortCode/{shortCode}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult GetAccountIdByShortCode(string shortCode)
+        {
+            if (ModelState.IsValid)
+            {
+                Result result = _accountService.GetAccountIdByShortCode(shortCode);
+                if (result.HasError)
+                {
+                    return StatusCode(result.StatusCode, result.WebApiError);
+                }
+                return Ok(result.ResultObject);
+            }
+            return BadRequest();
+        }
+
+        #region AddPlan Popup Page
+
+        /// <summary>
+        /// This is used to fill Product Components dropdowns.
+        /// </summary>
+        /// <param name="plansData">PlansData of IFormCollection type</param>
+        /// <response code="200">OK</response>
+        /// <response code="400">Bad Request</response>
+        [HttpPost("FillProductComponentsList")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult FillProductComponentsList([FromBody] FillProductComponentDto plansData)
+        {
+            Result result = _accountService.FillProductComponentsList(plansData);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpPost("SaveAccountPlan")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult SaveAccountPlan([FromBody] AccountProductsDetailWithFilterDto accountProductsDetailDto)
+        {
+            Result result = _accountService.SaveAccountPlan(accountProductsDetailDto);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpPost("StageBulkPushToDrexi")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult StageBulkPushToDrexi([FromBody] int accountId)
+        {
+            Result result = _accountService.StageBulkPushToDrexi(accountId);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+        #endregion
+
+        [HttpPost("AddEmployee")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult AddEmployee([FromBody] EmployeeDetailDto employeeModel)
+        {
+            Result result = _accountService.AddEmployee(employeeModel);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpGet("GetEmployeePlan/{accountId}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult GetEmployeePlan(int accountId)
+        {
+            Result result = _accountService.GetEmployeePlan(accountId);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpGet("FillGeneralAgentList")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult FillGeneralAgentList()
+        {
+            if (ModelState.IsValid)
+            {
+                Result result = _accountService.FillGeneralAgentList();
+                if (result.HasError)
+                {
+                    return StatusCode(result.StatusCode, result.WebApiError);
+                }
+                return Ok(result.ResultObject);
+            }
+            return BadRequest();
+        }
+
+        [HttpGet("GetGeneralAgentDetails/{id}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult GetGeneralAgentDetails(int id)
+        {
+            Result result = _accountService.GetGeneralAgentDetails(id);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpPost("SaveReseller")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult SaveReseller([FromBody] SaveResellerDto resellerModel)
+        {
+            Result result = _accountService.SaveReseller(resellerModel);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+            return Ok(result.ResultObject);
+        }
+
+        [HttpGet("DeleteEmployeeClass/{accountID}/{className}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult DeleteEmployeeClass(int accountID, string className)
+        {
+            Result result = _accountService.DeleteEmployeeClass(accountID, className);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+
+            return Ok(result.ResultObject);
+        }
+
+        [HttpGet("AccountStartEnrollment/{accountId}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult AccountStartEnrollment(int accountId)
+        {
+            Result result = _accountExtService.AccountStartEnrollment(accountId);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+
+            return Ok(result.ResultObject);
+        }
+
+        [HttpGet("DownloadSPDDocument/{accountId}/{productId}")]
+        [TypeFilter(typeof(CustomAuthorizeFilterAttribute))]
+        public IActionResult DownloadSPDDocument(int accountId, int productId)
+        {
+            Result result = _accountService.DownloadSPDDocuemnt(accountId, productId);
+            if (result.HasError)
+            {
+                return StatusCode(result.StatusCode, result.WebApiError);
+            }
+
+            object byteString = JsonConvert.DeserializeObject(Convert.ToString(result.ResultObject));
+            byte[] fileBytes = Convert.FromBase64String(Convert.ToString(byteString));
+            return File(new MemoryStream(fileBytes), "application/pdf");
+        }
+    }
+}
